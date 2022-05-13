@@ -45,8 +45,17 @@ async fn main() -> tokio_serial::Result<()> {
         let mut count = 1usize;
         let mut lost = 0usize;
 
+
+        let timeout_duration = if args.interval > 0.5 {
+            3.0*args.interval
+        } else {
+            2.0
+        };
+
         loop {
             tokio::time::sleep(Duration::from_secs_f64(args.interval)).await;
+
+
 
             let data = count.to_ne_bytes();
 
@@ -55,7 +64,7 @@ async fn main() -> tokio_serial::Result<()> {
             println!("<< Wrote {} bytes bytes: {:02X?}", data.len(), data);
 
             let timeout = async move {
-                tokio::time::sleep(Duration::from_secs(2)).await;
+                tokio::time::sleep(Duration::from_secs_f64(timeout_duration)).await;
             };
 
             let out = tokio::select! {
