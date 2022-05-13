@@ -11,18 +11,19 @@ const PREAMBLE: [u8; 4] = [0xF0, 0x0F, 0x0F, 0xF0];
 //FIXME: just for testing
 const CRC32: [u8; 4] = [0xCC, 0x32, 0xCC, 0x32];
 
-const MAX_MTU: usize = 65519;
+const MAX_MTU: usize = 1500;
 
 /// ZSerial Frame Format
 ///
 ///
-/// +--------+----+------------+----+
-/// |F00F0FF0|XXXX|ZZZZ....ZZZZ|CCCC|
-/// +--------+----+------------+----+
-/// Preamble | Len|   Data     |CRC32|
+/// +--------+----+------------+--------+
+/// |F00F0FF0|XXXX|ZZZZ....ZZZZ|CCCCCCCC|
+/// +--------+----+------------+--------+
+/// |Preamble| Len|   Data     |  CRC32 |
+/// +----4---+-2--+----N-------+---4----+
 ///
 /// Max Frame Size: 65535
-/// Max MTU: 65519 Check it can be way lower eg. 1500 like ETH
+/// Max MTU: 1500
 
 pub struct ZSerial {
     port: String,
