@@ -1,5 +1,5 @@
 use clap::Parser;
-use std::time::Duration;
+use std::{time::Duration, process::exit};
 
 mod zserial;
 
@@ -43,6 +43,7 @@ async fn main() -> tokio_serial::Result<()> {
         }
     } else {
         let mut count = 1usize;
+        let mut lost = 0usize;
 
         loop {
             tokio::time::sleep(Duration::from_secs_f64(args.interval)).await;
@@ -64,8 +65,16 @@ async fn main() -> tokio_serial::Result<()> {
                         println!(">> Read {read} bytes: {:02X?}", &buff[0..read]);
                         println!("Read: {}", usize::from_ne_bytes(buff[..read].try_into().expect("slice with incorrect length")));
                     }
+                    count = count.wrapping_add(1);
                 },
-                _ = timeout => (),
+                _ = timeout => {
+                    count = count.wrapping_add(1);
+                    lost = lost.wrapping_add(1);
+                },
+                _ = tokio::signal::ctrl_c() => {
+                    println!("Sent a total of {count} messages, lost {lost}");
+                    exit(0);
+                }
             };
 
             // let read = port.read_msg(&mut buff).await?;
@@ -74,7 +83,7 @@ async fn main() -> tokio_serial::Result<()> {
             //     println!("Read: {}", usize::from_ne_bytes(buff[..read].try_into().expect("slice with incorrect length")));
             // }
 
-            count = count.wrapping_add(1);
+
         }
     }
 }

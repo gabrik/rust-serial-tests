@@ -1,7 +1,7 @@
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio_serial::{SerialPortBuilderExt, SerialStream};
 
-const DEFAULT_BUFFSIZE: usize = 65535;
+const MAX_FRAME_SIZE: usize = 1510;
 const CRC32_LEN: u16 = 4;
 
 const FRAME_HEADER_TRAILER_LEN: u16 = 10;
@@ -29,7 +29,7 @@ pub struct ZSerial {
     port: String,
     baud_rate: u32,
     serial: SerialStream,
-    buff: [u8; DEFAULT_BUFFSIZE],
+    buff: [u8; MAX_FRAME_SIZE],
 }
 
 impl ZSerial {
@@ -43,7 +43,7 @@ impl ZSerial {
             port,
             baud_rate,
             serial,
-            buff: [0u8; DEFAULT_BUFFSIZE],
+            buff: [0u8; MAX_FRAME_SIZE],
         })
     }
 
@@ -58,10 +58,10 @@ impl ZSerial {
     pub async fn read_msg(&mut self, buff: &mut [u8]) -> tokio_serial::Result<usize> {
         let mut start_count = 0;
 
-        if buff.len() < DEFAULT_BUFFSIZE {
+        if buff.len() < MAX_MTU {
             return Err(tokio_serial::Error::new(
                 tokio_serial::ErrorKind::InvalidInput,
-                format!("Recv buffer is too small, required minimum {DEFAULT_BUFFSIZE}"),
+                format!("Recv buffer is too small, required minimum {MAX_MTU}"),
             ));
         }
 
