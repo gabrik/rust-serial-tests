@@ -22,7 +22,7 @@ const MAX_MTU: usize = 1500;
 /// |Preamble| Len|   Data     |  CRC32 |
 /// +----4---+-2--+----N-------+---4----+
 ///
-/// Max Frame Size: 65535
+/// Max Frame Size: 1510
 /// Max MTU: 1500
 
 pub struct ZSerial {
