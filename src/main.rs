@@ -67,7 +67,7 @@ async fn main() -> tokio_serial::Result<()> {
                 tokio::time::sleep(Duration::from_secs_f64(timeout_duration)).await;
             };
 
-            let out = tokio::select! {
+            let _out = tokio::select! {
                 res = port.read_msg(&mut buff) => {
                     let read = res?;
                     if read > 0 {
