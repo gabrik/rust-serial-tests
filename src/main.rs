@@ -33,11 +33,13 @@ async fn main() -> tokio_serial::Result<()> {
             let read = port.read_msg(&mut buff).await?;
             if read > 0 {
                 println!(">> Read {read} bytes: {:02X?}", &buff[0..read]);
+
+                port.write(&buff[..read]).await?;
+
+                println!("<< Echoed back");
             }
 
-            port.write(&buff[..read]).await?;
 
-            println!("<< Echoed back");
 
             // port.dump().await?;
         }
