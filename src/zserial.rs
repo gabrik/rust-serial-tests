@@ -2,7 +2,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio_serial::{SerialPortBuilderExt, SerialStream};
 
 const MAX_FRAME_SIZE: usize = 1510;
-const CRC32_LEN: u16 = 4;
+const CRC32_LEN: usize = 4;
 
 const FRAME_HEADER_TRAILER_LEN: u16 = 10;
 
@@ -12,6 +12,10 @@ const PREAMBLE: [u8; 4] = [0xF0, 0x0F, 0x0F, 0xF0];
 const CRC32: [u8; 4] = [0xCC, 0x32, 0xCC, 0x32];
 
 const MAX_MTU: usize = 1500;
+
+const CRC_TABLE_SIZE : usize = 256;
+
+const POLYNOMIA : u32 = 0x04C11DB7;
 
 /// ZSerial Frame Format
 ///
@@ -30,10 +34,24 @@ pub struct ZSerial {
     baud_rate: u32,
     serial: SerialStream,
     buff: [u8; MAX_FRAME_SIZE],
+    table: [u32;CRC_TABLE_SIZE],
 }
 
 impl ZSerial {
     pub fn new(port: String, baud_rate: u32) -> tokio_serial::Result<Self> {
+
+        //FIX ME without fold
+        // Preparing CRC table
+        let mut table = [0u32;CRC_TABLE_SIZE];
+        for n in 0..256 {
+            table[n as usize] = (0..8).fold(n as u32, | acc, _| {
+                match acc & 1 {
+                    1 => POLYNOMIA ^ (acc >> 1),
+                    _ => acc >> 1,
+                }
+            })
+        };
+
         let mut serial = tokio_serial::new(port.clone(), baud_rate).open_native_async()?;
 
         #[cfg(unix)]
@@ -44,7 +62,21 @@ impl ZSerial {
             baud_rate,
             serial,
             buff: [0u8; MAX_FRAME_SIZE],
+            table,
         })
+    }
+
+    pub fn compute_crc32(&self, buff: &[u8]) -> u32 {
+
+        let mut crc : u32= 0xFFFFFFFF;
+
+        for b in buff {
+            let octect = *b;
+            crc = (crc >> 8) ^ self.table[((crc & 0xFF) ^ octect as u32) as usize]
+        }
+
+        crc
+
     }
 
     pub async fn dump(&mut self) -> tokio_serial::Result<()> {
@@ -123,12 +155,20 @@ impl ZSerial {
                         .await?;
 
                     // reading CRC32
-                    let _crc: u32 = (self.buff[start_count] as u32) << 24
-                        | (self.buff[start_count + 1] as u32) << 16
-                        | (self.buff[start_count + 2] as u32) << 8
-                        | (self.buff[start_count + 3] as u32);
+                    let recv_crc: u32 = (self.buff[start_count + 3] as u32) << 24
+                        | (self.buff[start_count + 2] as u32) << 16
+                        | (self.buff[start_count + 1] as u32) << 8
+                        | (self.buff[start_count] as u32);
 
                     //println!("CRC32 {:02X?} {:02X?} {:02X?} {:02X?} ", self.buff[start_count], self.buff[start_count + 1], self.buff[start_count + 2], self.buff[start_count + 3]);
+
+                    let computed_crc = self.compute_crc32(&buff[0..data_size]);
+
+                    if recv_crc != computed_crc {
+                        println!("CRC failed!");
+                        return Ok(0)
+                    }
+
 
                     return Ok(data_size);
                 }
@@ -162,6 +202,8 @@ impl ZSerial {
             ));
         }
 
+        let crc32 = self.compute_crc32(buff).to_ne_bytes();
+
         // Write the preamble
         self.serial.write_all(&PREAMBLE).await?;
 
@@ -180,7 +222,7 @@ impl ZSerial {
         self.serial.write_all(&buff).await?;
 
         //Write the CRC32
-        self.serial.write_all(&CRC32).await?;
+        self.serial.write_all(&crc32).await?;
 
         // self.serial.flush().await?;
 
