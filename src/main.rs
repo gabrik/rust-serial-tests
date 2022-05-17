@@ -54,6 +54,18 @@ async fn main() -> tokio_serial::Result<()> {
             2.0
         };
 
+
+        // let data : [u8; 8] = [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+
+        // let crc_1 = port.compute_crc32(&data);
+
+        // let crc_2 = port.compute_crc32(&data);
+
+
+        // println!("CRC32 One: {:02X?}  Two: {:02X?}", crc_1, crc_2 );
+
+        // Ok(())
+
         loop {
             tokio::time::sleep(Duration::from_secs_f64(args.interval)).await;
 

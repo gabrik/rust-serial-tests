@@ -68,7 +68,7 @@ impl ZSerial {
 
     pub fn compute_crc32(&self, buff: &[u8]) -> u32 {
 
-        let mut crc : u32= 0xFFFFFFFF;
+        let mut crc : u32 = !0;
 
         for b in buff {
             let octect = *b;
@@ -151,7 +151,7 @@ impl ZSerial {
 
                     //read the CRC32
                     self.serial
-                        .read_exact(&mut self.buff[start_count..start_count + 3])
+                        .read_exact(&mut self.buff[start_count..start_count + 4])
                         .await?;
 
                     // reading CRC32
@@ -165,7 +165,7 @@ impl ZSerial {
                     let computed_crc = self.compute_crc32(&buff[0..data_size]);
 
                     if recv_crc != computed_crc {
-                        println!("CRC failed!");
+                        println!("CRC failed! Recv {:02X?} Comp {:02X?}", recv_crc, computed_crc );
                         return Ok(0)
                     }
 
