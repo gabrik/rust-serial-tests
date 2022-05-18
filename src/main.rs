@@ -30,15 +30,19 @@ async fn main() -> tokio_serial::Result<()> {
 
     if args.server {
         loop {
-            let read = port.read_msg(&mut buff).await?;
-            if read > 0 {
-                println!(">> Read {read} bytes: {:02X?}", &buff[0..read]);
 
-                port.write(&buff[..read]).await?;
+            match  port.read_msg(&mut buff).await {
+                Ok(read) => {
+                    println!(">> Read {read} bytes: {:02X?}", &buff[0..read]);
 
-                println!("<< Echoed back");
+                    port.write(&buff[..read]).await?;
+
+                    println!("<< Echoed back");
+                }
+                Err(e) => {
+                    println!("Got error: {e} received {:02X?}", &buff[..8]);
+                }
             }
-
         }
     } else {
         let mut count = 1usize;
