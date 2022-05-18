@@ -68,14 +68,14 @@ impl ZSerial {
 
     pub fn compute_crc32(&self, buff: &[u8]) -> u32 {
 
-        let mut crc : u32 = !0;
+        let mut acc : u32 = !0;
 
         for b in buff {
             let octect = *b;
-            crc = (crc >> 8) ^ self.table[((crc & 0xFF) ^ octect as u32) as usize]
+            acc = (acc >> 8) ^ self.table[((acc & 0xFF) ^ octect as u32) as usize]
         }
 
-        crc
+        !acc
 
     }
 
@@ -140,7 +140,7 @@ impl ZSerial {
 
                     // println!("Wire size {size}");
 
-                    let data_size = (size - FRAME_HEADER_TRAILER_LEN) as usize;
+                    let data_size = size as usize;
 
                     //println!("Data size {data_size}");
 
@@ -165,8 +165,10 @@ impl ZSerial {
                     let computed_crc = self.compute_crc32(&buff[0..data_size]);
 
                     if recv_crc != computed_crc {
-                        println!("CRC failed! Recv {:02X?} Comp {:02X?}", recv_crc, computed_crc );
-                        return Ok(0)
+                        return Err(tokio_serial::Error::new(
+                            tokio_serial::ErrorKind::InvalidInput,
+                            format!("CRC does not match Received {:02X?} Computed {:02X?}", recv_crc, computed_crc)),
+                        );
                     }
 
 
@@ -207,7 +209,7 @@ impl ZSerial {
         // Write the preamble
         self.serial.write_all(&PREAMBLE).await?;
 
-        let wire_size: u16 = buff.len() as u16 + FRAME_HEADER_TRAILER_LEN;
+        let wire_size: u16 = buff.len() as u16;
 
         // println!("Data size {} wire size {wire_size}",buff.len());
 

@@ -39,9 +39,6 @@ async fn main() -> tokio_serial::Result<()> {
                 println!("<< Echoed back");
             }
 
-
-
-            // port.dump().await?;
         }
     } else {
         let mut count = 1usize;
@@ -55,21 +52,8 @@ async fn main() -> tokio_serial::Result<()> {
         };
 
 
-        // let data : [u8; 8] = [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
-
-        // let crc_1 = port.compute_crc32(&data);
-
-        // let crc_2 = port.compute_crc32(&data);
-
-
-        // println!("CRC32 One: {:02X?}  Two: {:02X?}", crc_1, crc_2 );
-
-        // Ok(())
-
         loop {
             tokio::time::sleep(Duration::from_secs_f64(args.interval)).await;
-
-
 
             let data = count.to_ne_bytes();
 
@@ -99,13 +83,6 @@ async fn main() -> tokio_serial::Result<()> {
                     exit(0);
                 }
             };
-
-            // let read = port.read_msg(&mut buff).await?;
-            // if read > 0 {
-            //     println!(">> Read {read} bytes: {:02X?}", &buff[0..read]);
-            //     println!("Read: {}", usize::from_ne_bytes(buff[..read].try_into().expect("slice with incorrect length")));
-            // }
-
 
         }
     }
